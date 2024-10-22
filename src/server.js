@@ -5,9 +5,25 @@ import http from 'node:http'
 // const http = require('http')
 
 const users = []
+let idSequence = 1
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     const {method, url} = req
+
+    const buffers = []
+
+    for await (const chunk of req) {
+        buffers.push(chunk)
+    }
+
+    try{
+        req.body = JSON.parse(Buffer.concat(buffers).toString())
+
+    } catch {
+        req.body = null
+    }
+
+    // console.log(body)
 
     if (method == 'GET' && url == '/users'){
         return res
@@ -16,11 +32,14 @@ const server = http.createServer((req, res) => {
     }
 
     if (method == 'POST' && url == '/users'){
+        // const {name, email} = req.body poderia ser feito com desestruturacao tambem
+
         users.push({
-            id: 1,
-            name: 'John Doe',
-            email: 'johndoe@email.com'
+            id: idSequence,
+            name: req.body.name,
+            email: req.body.email
         })
+        idSequence++
         return res.writeHead(201).end()
     }
 
