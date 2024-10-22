@@ -1,46 +1,20 @@
 import http from 'node:http'
-// ESModules => importacao usando import/export
+import { json } from './middlewares/json.js'
+import { routes } from './routes.js'
 
-// CommonJs => importacao usando require
-// const http = require('http')
-
-const users = []
-let idSequence = 1
 
 const server = http.createServer(async (req, res) => {
     const {method, url} = req
 
-    const buffers = []
 
-    for await (const chunk of req) {
-        buffers.push(chunk)
-    }
+    await json(req, res)
 
-    try{
-        req.body = JSON.parse(Buffer.concat(buffers).toString())
+    const route = routes.find(route => {
+        return route.method == method && route.path == url
+    })
 
-    } catch {
-        req.body = null
-    }
-
-    // console.log(body)
-
-    if (method == 'GET' && url == '/users'){
-        return res
-        .setHeader('Content-type', 'application/json')
-        .end(JSON.stringify(users))
-    }
-
-    if (method == 'POST' && url == '/users'){
-        // const {name, email} = req.body poderia ser feito com desestruturacao tambem
-
-        users.push({
-            id: idSequence,
-            name: req.body.name,
-            email: req.body.email
-        })
-        idSequence++
-        return res.writeHead(201).end()
+    if (route) {
+        return route.handler(req, res)
     }
 
     return res.writeHead(404).end('Not Found :(')
